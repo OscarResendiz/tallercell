@@ -68,6 +68,27 @@ Una sola fila (clave `id` constante) con preferencias y datos generales del nego
 
 Cambiar la configuración no debe modificar folios, precios, garantías o comprobantes históricos.
 
+#### `CatalogoMonedaSistema`
+
+Catálogo local de monedas de uso común para seleccionar la moneda del taller. Se inicializa de forma idempotente con las opciones comunes y conserva cualquier moneda predeterminada del dispositivo o ya utilizada por la configuración del taller.
+
+| Campo | Tipo | Reglas y uso |
+|---|---|---|
+| `codigo` | TEXT | PK; código ISO 4217 estable, por ejemplo `MXN` o `USD`. |
+| `nombre` | TEXT | Nombre legible en español. |
+| `simbolo` | TEXT | Símbolo para ayudar a identificar la moneda; no sustituye al código ISO. |
+| `activo` | INTEGER | Booleano; solo se ofrecen monedas activas. |
+
+#### `CatalogoZonaHorariaSistema`
+
+Catálogo local de zonas horarias frecuentes para seleccionar la zona del taller. Se inicializa con zonas comunes y conserva la zona predeterminada del dispositivo o la zona existente en la configuración.
+
+| Campo | Tipo | Reglas y uso |
+|---|---|---|
+| `id` | TEXT | PK; identificador IANA estable, por ejemplo `America/Mexico_City`. |
+| `nombre` | TEXT | Nombre legible para selección; la etiqueta visible puede mostrar también el identificador IANA. |
+| `activo` | INTEGER | Booleano; solo se ofrecen zonas activas. |
+
 #### `ConfiguracionAccesoLocal`
 
 Una fila singleton con preferencias de acceso. La autenticación biométrica y la credencial del dispositivo se delegan a Android; no almacenar plantillas biométricas.

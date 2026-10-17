@@ -4,14 +4,19 @@ import android.app.KeyguardManager
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import android.widget.ArrayAdapter
+import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.SearchView
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,9 +36,12 @@ import com.example.tallercelulares.ConfiguracionInicial.VerificadorContrasena
 import com.example.tallercelulares.ConfiguracionInicial.VerificadorDerivado
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionAccesoLocal.ConfiguracionAccesoLocal
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionTaller.ConfiguracionTaller
+import com.example.tallercelulares.DataBase.Entidades.CatalogoMonedaSistema.CatalogoMonedaSistema
+import com.example.tallercelulares.DataBase.Entidades.CatalogoZonaHorariaSistema.CatalogoZonaHorariaSistema
 import com.example.tallercelulares.DataBase.TallerCelularesDatabase
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -44,14 +52,17 @@ import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
+import java.util.Locale
 import java.util.TimeZone
 
 class MainActivity : AppCompatActivity() {
     private lateinit var repository: RepositorioConfiguracionInicial
     private lateinit var root: android.widget.FrameLayout
     private val fieldValues = linkedMapOf<String, String>()
-    private val editFields = mutableMapOf<String, TextInputEditText>()
+    private val editFields = mutableMapOf<String, EditText>()
     private val fieldLayouts = mutableMapOf<String, TextInputLayout>()
+    private var monedasSistema: List<CatalogoMonedaSistema> = emptyList()
+    private var zonasHorariasSistema: List<CatalogoZonaHorariaSistema> = emptyList()
     private var selectedMethod = RepositorioConfiguracionInicial.METODO_CONTRASENA
     private var pendingAccess: ConfiguracionAccesoLocal? = null
     private var deviceAuthSuccess: (() -> Unit)? = null
@@ -95,12 +106,24 @@ class MainActivity : AppCompatActivity() {
         showLoading()
         lifecycleScope.launch {
             try {
+                val savedWorkshop = withContext(Dispatchers.IO) {
+                    repository.obtenerTaller()
+                }
+                val catalogs = withContext(Dispatchers.IO) {
+                    repository.prepararCatalogosSistema(
+                        monedaDispositivo = defaultCurrencyCode(),
+                        zonaHorariaDispositivo = TimeZone.getDefault().id,
+                        monedaConfigurada = savedWorkshop?.monedaCodigo,
+                        zonaHorariaConfigurada = savedWorkshop?.zonaHoraria
+                    )
+                }
+                monedasSistema = catalogs.first
+                zonasHorariasSistema = catalogs.second
                 val state = withContext(Dispatchers.IO) { repository.estado() }
                 when (state) {
                     EstadoConfiguracionInicial.COMPLETA -> showLogin()
                     EstadoConfiguracionInicial.INCOMPLETA -> {
-                        val existing = withContext(Dispatchers.IO) { repository.obtenerTaller() }
-                        if (existing != null && fieldValues.isEmpty()) populateForm(existing)
+                        if (savedWorkshop != null && fieldValues.isEmpty()) populateForm(savedWorkshop)
                         showWelcome(incomplete = true)
                     }
                     EstadoConfiguracionInicial.SIN_CONFIGURACION -> showWelcome()
@@ -142,9 +165,25 @@ class MainActivity : AppCompatActivity() {
                 showLoading()
                 lifecycleScope.launch {
                     try {
+                        val savedWorkshop = withContext(Dispatchers.IO) {
+                            repository.obtenerTaller()
+                        }
+                        val catalogs = withContext(Dispatchers.IO) {
+                            repository.prepararCatalogosSistema(
+                                monedaDispositivo = defaultCurrencyCode(),
+                                zonaHorariaDispositivo = TimeZone.getDefault().id,
+                                monedaConfigurada = savedWorkshop?.monedaCodigo,
+                                zonaHorariaConfigurada = savedWorkshop?.zonaHoraria
+                            )
+                        }
+                        monedasSistema = catalogs.first
+                        zonasHorariasSistema = catalogs.second
                         when (withContext(Dispatchers.IO) { repository.estado() }) {
                             EstadoConfiguracionInicial.COMPLETA -> showLogin()
-                            EstadoConfiguracionInicial.INCOMPLETA -> showWelcome(incomplete = true)
+                            EstadoConfiguracionInicial.INCOMPLETA -> {
+                                if (savedWorkshop != null && fieldValues.isEmpty()) populateForm(savedWorkshop)
+                                showWelcome(incomplete = true)
+                            }
                             EstadoConfiguracionInicial.SIN_CONFIGURACION -> showWelcome()
                         }
                     } catch (cancelled: CancellationException) {
@@ -288,8 +327,16 @@ class MainActivity : AppCompatActivity() {
         (getSystemService(KEYGUARD_SERVICE) as KeyguardManager).isDeviceSecure
 
     private fun biometricAvailable(): Boolean =
-        BiometricManager.from(this).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
-            BiometricManager.BIOMETRIC_SUCCESS
+        try {
+            BiometricManager.from(this).canAuthenticate(BIOMETRIC_AUTHENTICATORS) ==
+                BiometricManager.BIOMETRIC_SUCCESS
+        } catch (exception: SecurityException) {
+            Log.e(TAG, "No fue posible comprobar la disponibilidad biométrica.", exception)
+            false
+        } catch (exception: IllegalArgumentException) {
+            Log.e(TAG, "Android rechazó la configuración de autenticadores biométricos.", exception)
+            false
+        }
 
     private fun showPasswordSetup(error: String? = null) {
         editFields.clear()
@@ -410,8 +457,24 @@ class MainActivity : AppCompatActivity() {
                 )
                 addInput(this, "direccion", getString(R.string.shop_address), defaults.getValue("direccion"))
                 addSectionTitle(this, "Formato y folios")
-                addInput(this, "moneda", getString(R.string.currency_label), defaults.getValue("moneda"))
-                addInput(this, "zona_horaria", getString(R.string.timezone_label), defaults.getValue("zona_horaria"))
+                addSelectionDropdown(
+                    this,
+                    key = "moneda",
+                    label = getString(R.string.currency_label),
+                    selectedValue = defaults.getValue("moneda"),
+                    options = monedasSistema.map {
+                        SelectionOption(it.codigo, "${it.nombre} (${it.simbolo} · ${it.codigo})")
+                    }
+                )
+                addSelectionDropdown(
+                    this,
+                    key = "zona_horaria",
+                    label = getString(R.string.timezone_label),
+                    selectedValue = defaults.getValue("zona_horaria"),
+                    options = zonasHorariasSistema.map {
+                        SelectionOption(it.id, "${it.nombre} (${it.id})")
+                    }
+                )
                 addInput(this, "prefijo_folio", getString(R.string.folio_prefix_label), defaults.getValue("prefijo_folio"))
                 addInput(
                     this,
@@ -679,30 +742,57 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmBiometric(onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (!biometricAvailable()) {
-            onError(getString(R.string.biometric_unavailable))
-            return
-        }
-        val prompt = BiometricPrompt(
-            this,
-            ContextCompat.getMainExecutor(this),
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    onSuccess()
-                }
-
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    onError(errString.toString())
-                }
+        try {
+            val availability = BiometricManager.from(this).canAuthenticate(BIOMETRIC_AUTHENTICATORS)
+            if (availability != BiometricManager.BIOMETRIC_SUCCESS) {
+                onError(biometricAvailabilityMessage(availability))
+                return
             }
-        )
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(getString(R.string.app_name))
-            .setSubtitle(getString(R.string.biometric_option))
-            .setDescription(getString(R.string.system_auth_reason))
-            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-            .build()
-        prompt.authenticate(promptInfo)
+            val prompt = BiometricPrompt(
+                this,
+                ContextCompat.getMainExecutor(this),
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        onSuccess()
+                    }
+
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        onError(errString.toString())
+                    }
+                }
+            )
+            val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                .setTitle(getString(R.string.app_name))
+                .setSubtitle(getString(R.string.biometric_option))
+                .setDescription(getString(R.string.system_auth_reason))
+                .setAllowedAuthenticators(BIOMETRIC_AUTHENTICATORS)
+                .setNegativeButtonText(getString(R.string.biometric_use_other_method))
+                .build()
+            prompt.authenticate(promptInfo)
+        } catch (exception: SecurityException) {
+            Log.e(TAG, "Android denegó iniciar la autenticación biométrica.", exception)
+            onError(getString(R.string.biometric_permission_error))
+        } catch (exception: IllegalArgumentException) {
+            Log.e(TAG, "Android rechazó la configuración del diálogo biométrico.", exception)
+            onError(getString(R.string.biometric_configuration_error))
+        } catch (exception: IllegalStateException) {
+            Log.e(TAG, "No fue posible iniciar el diálogo biométrico.", exception)
+            onError(getString(R.string.biometric_start_error))
+        }
+    }
+
+    private fun biometricAvailabilityMessage(status: Int): String = when (status) {
+        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
+            getString(R.string.biometric_no_hardware)
+        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
+            getString(R.string.biometric_hardware_unavailable)
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
+            getString(R.string.biometric_none_enrolled)
+        BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED ->
+            getString(R.string.biometric_security_update_required)
+        BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED ->
+            getString(R.string.biometric_unsupported)
+        else -> getString(R.string.biometric_unavailable)
     }
 
     private fun accessConfiguration(
@@ -719,9 +809,7 @@ class MainActivity : AppCompatActivity() {
         )
 
     private fun defaultFormValues(): Map<String, String> {
-        val defaultCurrency = runCatching {
-            Currency.getInstance(java.util.Locale.getDefault()).currencyCode
-        }.getOrDefault("MXN")
+        val defaultCurrency = defaultCurrencyCode()
         return mapOf(
             "nombre" to "",
             "telefono" to "",
@@ -738,6 +826,20 @@ class MainActivity : AppCompatActivity() {
             "refaccion_atrasada" to "3",
             "equipo_listo" to "2"
         )
+    }
+
+    private fun defaultCurrencyCode(): String {
+        val locale = Locale.getDefault(Locale.Category.FORMAT)
+        val configuredCurrency = runCatching { Currency.getInstance(locale).currencyCode }.getOrNull()
+        val availableCodes = Currency.getAvailableCurrencies().mapTo(mutableSetOf()) { it.currencyCode }
+        return configuredCurrency?.takeIf { it in availableCodes }
+            ?: Currency.getAvailableCurrencies()
+                .asSequence()
+                .filter { it.currencyCode != "XXX" && it.currencyCode != "XTS" }
+                .sortedBy { it.currencyCode }
+                .firstOrNull()
+                ?.currencyCode
+            ?: "USD"
     }
 
     private fun populateForm(configuration: ConfiguracionTaller) {
@@ -789,7 +891,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun captureCurrentFields() {
         editFields.forEach { (key, value) ->
-            if (key !in SENSITIVE_FIELD_KEYS) {
+            if (key in SELECTION_FIELD_KEYS) {
+                val selectedValue = value.tag as? String
+                if (selectedValue == null) {
+                    fieldValues.remove(key)
+                } else {
+                    fieldValues[key] = selectedValue
+                }
+            } else if (key !in SENSITIVE_FIELD_KEYS) {
                 fieldValues[key] = value.text?.toString().orEmpty()
             }
         }
@@ -831,6 +940,130 @@ class MainActivity : AppCompatActivity() {
         container.addView(layout)
         editFields[key] = editText
         fieldLayouts[key] = layout
+    }
+
+    private fun addSelectionDropdown(
+        container: LinearLayout,
+        key: String,
+        label: String,
+        selectedValue: String,
+        options: List<SelectionOption>
+    ) {
+        val selectedOption = options.firstOrNull { it.value == fieldValues[key] }
+            ?: options.firstOrNull { it.value == selectedValue }
+            ?: options.firstOrNull()
+        val layout = TextInputLayout(this).apply {
+            hint = label
+            boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+            setBoxStrokeColor(TEAL)
+            endIconMode = TextInputLayout.END_ICON_CUSTOM
+            setEndIconDrawable(android.R.drawable.arrow_down_float)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(12) }
+        }
+        val selectedText = TextInputEditText(this).apply {
+            setText(selectedOption?.label.orEmpty())
+            tag = selectedOption?.value
+            setTextColor(DARK)
+            textSize = 16f
+            isFocusable = false
+            isClickable = true
+            showSoftInputOnFocus = false
+            contentDescription = "$label: ${selectedOption?.label.orEmpty()}. Toca para elegir otra opción."
+            setOnClickListener { showSelectionDialog(layout, key, label, options, this) }
+        }
+        layout.addView(selectedText)
+        layout.setEndIconOnClickListener {
+            showSelectionDialog(layout, key, label, options, selectedText)
+        }
+        selectedOption?.let { fieldValues[key] = it.value }
+        container.addView(layout)
+        editFields[key] = selectedText
+        fieldLayouts[key] = layout
+    }
+
+    private fun showSelectionDialog(
+        fieldLayout: TextInputLayout,
+        fieldKey: String,
+        title: String,
+        options: List<SelectionOption>,
+        selectedText: TextInputEditText
+    ) {
+        if (options.isEmpty()) {
+            fieldLayout.error = "No hay opciones disponibles en el catálogo local."
+            return
+        }
+
+        val searchView = SearchView(this).apply {
+            queryHint = "Buscar en ${options.size} opciones"
+            isIconified = false
+            clearFocus()
+        }
+        val listView = ListView(this).apply {
+            dividerHeight = dp(1)
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_list_item_1,
+            options.toMutableList()
+        )
+        listView.adapter = adapter
+
+        val dialogContent = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), 0, dp(8), dp(8))
+            addView(
+                searchView,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+            addView(
+                listView,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(420)
+                )
+            )
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setView(dialogContent)
+            .setNegativeButton("Cerrar", null)
+            .create()
+
+        listView.setOnItemClickListener { _, _, position, _ ->
+            val option = adapter.getItem(position)
+            if (option != null) {
+                selectedText.setText(option.label)
+                selectedText.contentDescription =
+                    "$title: ${option.label}. Toca para elegir otra opción."
+                selectedText.tag = option.value
+                fieldValues[fieldKey] = option.value
+                fieldLayout.error = null
+                dialog.dismiss()
+            }
+        }
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                searchView.clearFocus()
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                adapter.filter.filter(newText.orEmpty())
+                return true
+            }
+        })
+        dialog.setOnShowListener {
+            val selectedIndex = options.indexOfFirst { it.value == fieldValues[fieldKey] }
+            if (selectedIndex >= 0) listView.setSelection(selectedIndex)
+        }
+        dialog.show()
     }
 
     private fun render(
@@ -989,12 +1222,19 @@ class MainActivity : AppCompatActivity() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        private const val TAG = "TallerCelulares"
+        private val BIOMETRIC_AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_WEAK
         private const val STATE_METHOD = "setup.method"
         private const val FIELD_STATE_PREFIX = "setup.field."
+        private val SELECTION_FIELD_KEYS = setOf("moneda", "zona_horaria")
         private val SENSITIVE_FIELD_KEYS = setOf("password", "password_confirm", "login_password")
         private val DARK = Color.rgb(20, 32, 48)
         private val MUTED = Color.rgb(91, 105, 122)
         private val TEAL = Color.rgb(0, 117, 112)
         private val ERROR = Color.rgb(176, 42, 55)
+    }
+
+    private data class SelectionOption(val value: String, val label: String) {
+        override fun toString(): String = label
     }
 }

@@ -1,9 +1,11 @@
 package com.example.tallercelulares.DataBase
 
 import android.content.Context
+import androidx.room.migration.Migration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.tallercelulares.DataBase.Entidades.AccesorioOrden.AccesorioOrden
 import com.example.tallercelulares.DataBase.Entidades.AccesorioOrden.AccesorioOrdenDao
 import com.example.tallercelulares.DataBase.Entidades.AdjuntoOrden.AdjuntoOrden
@@ -12,6 +14,10 @@ import com.example.tallercelulares.DataBase.Entidades.AutorizacionCotizacion.Aut
 import com.example.tallercelulares.DataBase.Entidades.AutorizacionCotizacion.AutorizacionCotizacionDao
 import com.example.tallercelulares.DataBase.Entidades.CatalogoServicio.CatalogoServicio
 import com.example.tallercelulares.DataBase.Entidades.CatalogoServicio.CatalogoServicioDao
+import com.example.tallercelulares.DataBase.Entidades.CatalogoMonedaSistema.CatalogoMonedaSistema
+import com.example.tallercelulares.DataBase.Entidades.CatalogoMonedaSistema.CatalogoMonedaSistemaDao
+import com.example.tallercelulares.DataBase.Entidades.CatalogoZonaHorariaSistema.CatalogoZonaHorariaSistema
+import com.example.tallercelulares.DataBase.Entidades.CatalogoZonaHorariaSistema.CatalogoZonaHorariaSistemaDao
 import com.example.tallercelulares.DataBase.Entidades.Cliente.Cliente
 import com.example.tallercelulares.DataBase.Entidades.Cliente.ClienteDao
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionAccesoLocal.ConfiguracionAccesoLocal
@@ -54,7 +60,9 @@ import com.example.tallercelulares.DataBase.Entidades.TrabajoRealizado.TrabajoRe
         AccesorioOrden::class,
         AdjuntoOrden::class,
         AutorizacionCotizacion::class,
+        CatalogoMonedaSistema::class,
         CatalogoServicio::class,
+        CatalogoZonaHorariaSistema::class,
         Cliente::class,
         ConfiguracionAccesoLocal::class,
         ConfiguracionTaller::class,
@@ -74,14 +82,16 @@ import com.example.tallercelulares.DataBase.Entidades.TrabajoRealizado.TrabajoRe
         RegistroRespaldo::class,
         TrabajoRealizado::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class TallerCelularesDatabase : RoomDatabase() {
     abstract fun accesorioOrdenDao(): AccesorioOrdenDao
     abstract fun adjuntoOrdenDao(): AdjuntoOrdenDao
     abstract fun autorizacionCotizacionDao(): AutorizacionCotizacionDao
+    abstract fun catalogoMonedaSistemaDao(): CatalogoMonedaSistemaDao
     abstract fun catalogoServicioDao(): CatalogoServicioDao
+    abstract fun catalogoZonaHorariaSistemaDao(): CatalogoZonaHorariaSistemaDao
     abstract fun clienteDao(): ClienteDao
     abstract fun configuracionAccesoLocalDao(): ConfiguracionAccesoLocalDao
     abstract fun configuracionTallerDao(): ConfiguracionTallerDao
@@ -111,7 +121,36 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
                     context.applicationContext,
                     TallerCelularesDatabase::class.java,
                     "taller_celulares.db"
-                ).build().also { instancia = it }
+                )
+                    .addMigrations(MIGRACION_1_2)
+                    .build()
+                    .also { instancia = it }
             }
+
+        private val MIGRACION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `catalogo_moneda_sistema` (
+                        `codigo` TEXT NOT NULL,
+                        `nombre` TEXT NOT NULL,
+                        `simbolo` TEXT NOT NULL,
+                        `activo` INTEGER NOT NULL,
+                        PRIMARY KEY(`codigo`)
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `catalogo_zona_horaria_sistema` (
+                        `id` TEXT NOT NULL,
+                        `nombre` TEXT NOT NULL,
+                        `activo` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
     }
 }

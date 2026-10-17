@@ -4,6 +4,9 @@ import androidx.room.withTransaction
 import com.example.tallercelulares.DataBase.TallerCelularesDatabase
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionAccesoLocal.ConfiguracionAccesoLocal
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionTaller.ConfiguracionTaller
+import com.example.tallercelulares.DataBase.Entidades.CatalogoMonedaSistema.CatalogoMonedaSistema
+import com.example.tallercelulares.DataBase.Entidades.CatalogoZonaHorariaSistema.CatalogoZonaHorariaSistema
+import com.example.tallercelulares.DataBase.Entidades.CatalogosSistema.CatalogosSistemaIniciales
 import java.time.Instant
 
 enum class EstadoConfiguracionInicial {
@@ -28,6 +31,24 @@ class RepositorioConfiguracionInicial(private val database: TallerCelularesDatab
 
     suspend fun obtenerAcceso(): ConfiguracionAccesoLocal? =
         database.configuracionAccesoLocalDao().obtenerPorId(ID_ACCESO)
+
+    suspend fun prepararCatalogosSistema(
+        monedaDispositivo: String,
+        zonaHorariaDispositivo: String,
+        monedaConfigurada: String? = null,
+        zonaHorariaConfigurada: String? = null
+    ): Pair<List<CatalogoMonedaSistema>, List<CatalogoZonaHorariaSistema>> =
+        database.withTransaction {
+            val monedas = CatalogosSistemaIniciales.monedas(monedaDispositivo, monedaConfigurada)
+            val zonasHorarias = CatalogosSistemaIniciales.zonasHorarias(
+                zonaHorariaDispositivo,
+                zonaHorariaConfigurada
+            )
+            database.catalogoMonedaSistemaDao().insertarSiNoExisten(monedas)
+            database.catalogoZonaHorariaSistemaDao().insertarSiNoExisten(zonasHorarias)
+            database.catalogoMonedaSistemaDao().obtenerActivas() to
+                database.catalogoZonaHorariaSistemaDao().obtenerActivas()
+        }
 
     suspend fun guardar(
         taller: ConfiguracionTaller,
