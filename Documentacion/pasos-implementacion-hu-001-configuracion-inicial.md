@@ -258,7 +258,7 @@ HU-001 está terminada cuando:
 
 ## 9. Implementación realizada
 
-La implementación actual está en [MainActivity.kt](../TallerCelulares/app/src/main/java/com/example/tallercelulares/MainActivity.kt), el paquete `ConfiguracionInicial` y las entidades de catálogos de sistema:
+La implementación separa el punto de entrada en [MainActivity.kt](../TallerCelulares/app/src/main/java/com/example/tallercelulares/MainActivity.kt), el asistente en [OnboardingActivity.kt](../TallerCelulares/app/src/main/java/com/example/tallercelulares/Modulos/onbording/OnboardingActivity.kt) y los componentes visuales compartidos en [BaseTallerActivity.kt](../TallerCelulares/app/src/main/java/com/example/tallercelulares/Modulos/onbording/BaseTallerActivity.kt), junto con el paquete `ConfiguracionInicial` y las entidades de catálogos de sistema:
 
 - El asistente presenta bienvenida y privacidad, método de acceso, formulario del taller, revisión y guardado.
 - Los métodos disponibles son contraseña propia, bloqueo de pantalla Android y biometría aceptada por AndroidX `BIOMETRIC_WEAK`, que permite huella o reconocimiento facial compatible. Se declara `USE_BIOMETRIC`, el diálogo incluye una acción negativa explícita para usar otro método y se muestran errores de disponibilidad/configuración en vez de cerrar la aplicación. No se guardan credenciales del dispositivo ni plantillas biométricas.

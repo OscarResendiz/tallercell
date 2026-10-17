@@ -14,6 +14,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TallerCelulares">
         <activity
+            android:name=".Modulos.onbording.OnboardingActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
