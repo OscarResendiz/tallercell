@@ -54,7 +54,7 @@ import java.time.Instant
 import java.util.Currency
 import java.util.Locale
 import java.util.TimeZone
-import com.example.tallercelulares.MainActivity
+import com.example.tallercelulares.Modulos.acceso.AccesoActivity
 import com.example.tallercelulares.R
 
 /** Controla el asistente de primer uso, paso a paso. */
@@ -108,7 +108,7 @@ class OnboardingActivity : BaseTallerActivity() {
 
     // Al finalizar, el acceso se abre en la actividad de entrada.
     private fun returnToLogin() {
-        startActivity(Intent(this, MainActivity::class.java))
+        startActivity(Intent(this, AccesoActivity::class.java))
         finish()
     }
 
