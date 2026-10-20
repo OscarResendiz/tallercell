@@ -4,7 +4,9 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.RawQuery
 import androidx.room.Update
+import androidx.sqlite.db.SupportSQLiteQuery
 
 @Dao
 interface OrdenServicioDao {
@@ -22,6 +24,19 @@ interface OrdenServicioDao {
 
     @Query("SELECT * FROM orden_servicio WHERE orden_origen_id = :ordenOrigenId")
     suspend fun obtenerPorOrdenOrigenId(ordenOrigenId: String): List<OrdenServicio>
+
+    @RawQuery
+    suspend fun consultarTablero(query: SupportSQLiteQuery): List<OrdenTableroRegistro>
+
+    @Query(
+        """
+        SELECT estado, COUNT(id) AS cantidad
+        FROM orden_servicio
+        WHERE eliminada_en IS NULL AND estado NOT IN ('ENTREGADA', 'CANCELADA')
+        GROUP BY estado
+        """
+    )
+    suspend fun obtenerConteosTablero(): List<ConteoOrdenTablero>
 
     @Insert
     suspend fun insertar(ordenServicio: OrdenServicio)

@@ -29,6 +29,7 @@ import com.example.tallercelulares.ConfiguracionInicial.EstadoConfiguracionInici
 import com.example.tallercelulares.ConfiguracionInicial.RepositorioConfiguracionInicial
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionAccesoLocal.ConfiguracionAccesoLocal
 import com.example.tallercelulares.DataBase.TallerCelularesDatabase
+import com.example.tallercelulares.Modulos.tablero.TableroPrincipal
 import com.example.tallercelulares.Modulos.onbording.OnboardingActivity
 import com.example.tallercelulares.R
 import com.google.android.material.button.MaterialButton
@@ -49,6 +50,7 @@ class AccesoActivity : AppCompatActivity() {
     private var errorMessage: String? = null
     private var isAuthenticating = false
     private var backgroundedAt: Long? = null
+    private var tablero: TableroPrincipal? = null
     private var passwordField: EditText? = null
     private var primaryButton: MaterialButton? = null
     private val lockHandler = android.os.Handler(Looper.getMainLooper())
@@ -87,6 +89,7 @@ class AccesoActivity : AppCompatActivity() {
             lockSession()
         } else if (session.estaAutenticada) {
             scheduleLockCheck()
+            tablero?.refrescar()
         }
     }
 
@@ -350,23 +353,18 @@ class AccesoActivity : AppCompatActivity() {
     }
 
     private fun showAuthenticatedDestination() {
-        renderScreen(
-            title = "Acceso concedido",
-            subtitle = "Tu sesión local está desbloqueada.",
-            content = {
-                addInformation(
-                    "La configuración y los datos permanecen en este dispositivo. " +
-                        "El menú de trabajo se integrará en HU-003."
-                )
-            },
-            primaryLabel = "Bloquear aplicación",
-            onPrimary = { lockSession() }
+        tablero = TableroPrincipal(
+            activity = this,
+            container = root,
+            database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
+            alBloquear = { lockSession() }
         )
     }
 
     private fun lockSession() {
         lockHandler.removeCallbacks(lockRunnable)
         session.bloquear()
+        tablero = null
         requestedAuthorization = null
         errorMessage = null
         showLogin()

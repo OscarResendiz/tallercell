@@ -271,7 +271,17 @@ Antes del cierre:
 5. Registrar casos de prueba automatizados y validación manual en dispositivo.
 6. Confirmar que `MainActivity` u otras pantallas legacy no sean una ruta alternativa que omita la sesión o muestre contenido duplicado.
 
-## 6. Definición de terminado
+## 6. Registro de implementación en la aplicación actual
+
+- El tablero se presenta dentro de `AccesoActivity`, después de autenticar, para conservar su sesión efímera, bloqueo por inactividad y protección `FLAG_SECURE`. `MainActivity` no contiene funcionalidad del tablero.
+- El menú informa cuáles áreas están disponibles. El tablero está implementado; las operaciones de órdenes/recepción, clientes, dispositivos, servicios, inventario, caja, garantías, informes, configuración y respaldo continúan pendientes y no se simulan como exitosas.
+- La lista excluye estados terminales de forma predeterminada; se pueden consultar seleccionando explícitamente `Entregada` o `Cancelada`. Los estados desconocidos conservan una etiqueta y acción neutrales.
+- Los grupos del resumen son: diagnóstico (`RECIBIDA`, `COLA_DIAGNOSTICO`, `EN_DIAGNOSTICO`), espera (`ESPERANDO_AUTORIZACION`, `ESPERANDO_REFACCION`), reparación (`COLA_REPARACION`, `EN_REPARACION`, `CONTROL_CALIDAD`) y entrega (`LISTA_ENTREGA`, `DEVOLUCION_SIN_REPARAR`).
+- Las alertas por espera usan los plazos ya configurados en `ConfiguracionTaller` para autorización, refacción y equipo listo. Un plazo de cero desactiva esa alerta; no se establece un umbral universal para otros estados. La fecha prometida se compara como instante y los estados terminales no se alertan.
+- La consulta usa snapshots históricos, incluye serie/IMEI solo en la búsqueda (no en tarjetas), pagina de 50 órdenes y permite combinar texto con grupo o estado. La consulta, filtros y alertas son de solo lectura.
+- Pruebas unitarias de `ReglasTableroTest` verifican búsqueda acentuada y por identificador, estado desconocido, plazos configurados, vencimiento y no mutación lógica de órdenes.
+
+## 7. Definición de terminado
 
 HU-003 queda lista cuando:
 
@@ -287,7 +297,7 @@ HU-003 queda lista cuando:
 10. Pruebas unitarias, de integración/navegación y visuales correspondientes pasan; compilación y lint pasan.
 11. Se valida en modo avión y en dispositivos/tamaños de pantalla representativos.
 
-## 7. Riesgos y mitigaciones
+## 8. Riesgos y mitigaciones
 
 | Riesgo | Mitigación |
 |---|---|
@@ -301,4 +311,3 @@ HU-003 queda lista cuando:
 | Un refresh de tablero cambia estado o crea eventos accidentalmente | Mantener cálculos de alerta como lecturas puras y verificar que no haya escrituras. |
 | Una ruta del menú permite evitar el bloqueo al expirar sesión | Centralizar guard de navegación y cubrir acceso directo, reanudación y back stack con pruebas. |
 | La lista crece y degrada el rendimiento en teléfonos modestos | Consultas acotadas, paginación, cancelación de búsquedas y pruebas de volumen. |
-
