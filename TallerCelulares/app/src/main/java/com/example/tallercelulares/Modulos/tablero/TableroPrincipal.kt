@@ -58,6 +58,7 @@ internal class TableroPrincipal(
     private var codigosEstado = filtrosConocidos
     private var estadoSeleccionado: String? = null
     private var grupoSeleccionado: GrupoTablero? = null
+    private var hayOrdenesRegistradas = false
     private var taller: ConfiguracionTaller? = null
     private var zonaHoraria: ZoneId = ZoneId.of("UTC")
     private var desplazamiento = 0
@@ -155,15 +156,15 @@ internal class TableroPrincipal(
 
         contenido.addView(texto("Buscar órdenes", 18f, COLOR_TEXTO, true))
         val campoBusqueda = TextInputLayout(activity).apply {
-            hint = "Folio, cliente, teléfono o equipo"
+            hint = "Folio, cliente, teléfono, equipo, serie o IMEI"
             boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
             endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
-            contentDescription = "Buscar por folio, cliente, teléfono, marca, modelo o serie"
+            contentDescription = "Buscar por folio, cliente, teléfono, marca, modelo, serie o IMEI"
         }
         busqueda = TextInputEditText(campoBusqueda.context).apply {
             setSingleLine(true)
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
-            contentDescription = "Buscar por folio, cliente, teléfono, marca, modelo o serie"
+            contentDescription = "Buscar por folio, cliente, teléfono, marca, modelo, serie o IMEI"
         }
         campoBusqueda.addView(busqueda)
         contenido.addView(campoBusqueda, margenInferior())
@@ -197,6 +198,7 @@ internal class TableroPrincipal(
                     if (filtroActualizado && estadoSeleccionado != selected.codigo) {
                         estadoSeleccionado = selected.codigo
                         grupoSeleccionado = null
+                        actualizarEtiquetaFiltro()
                         actualizarTablero(reiniciar = true)
                     }
                     filtroActualizado = true
@@ -279,31 +281,28 @@ internal class TableroPrincipal(
         botonMas.isEnabled = false
         tareaCarga = activity.lifecycleScope.launch {
             try {
-                val databaseState = if (offsetSolicitado == 0) {
+                if (offsetSolicitado == 0) {
                     val configuracion = database.configuracionTallerDao().obtenerPorId("TALLER")
                         ?: error("No se encontró la configuración del taller.")
-                    val zone = ZoneId.of(configuracion.zonaHoraria)
+                    zonaHoraria = ZoneId.of(configuracion.zonaHoraria)
                     val counts = database.ordenServicioDao().obtenerConteosTablero()
-                    Triple(configuracion, zone, counts)
-                } else {
-                    Triple(
-                        requireNotNull(taller),
-                        zonaHoraria,
-                        emptyList()
-                    )
-                }
-                if (offsetSolicitado == 0) {
-                    taller = databaseState.first
-                    zonaHoraria = databaseState.second
+                    hayOrdenesRegistradas =
+                        database.ordenServicioDao().obtenerCantidadOrdenesRegistradas() > 0
+                    taller = configuracion
                     conteos.clear()
-                    databaseState.third.forEach { conteos[it.estado] = it.cantidad }
+                    counts.forEach { conteos[it.estado] = it.cantidad }
                     codigosEstado = (filtrosConocidos + conteos.keys)
                         .distinct()
-                        .sortedBy { filtrosConocidos.indexOf(it).let { index -> if (index < 0) Int.MAX_VALUE else index } }
+                        .sortedBy {
+                            filtrosConocidos.indexOf(it)
+                                .let { index -> if (index < 0) Int.MAX_VALUE else index }
+                        }
                     configurarEstados(codigosEstado)
-                    tituloTaller.text = databaseState.first.nombre?.takeIf(String::isNotBlank)
+                    tituloTaller.text = configuracion.nombre?.takeIf(String::isNotBlank)
                         ?: "Taller Celulares"
                     mostrarResumen()
+                } else {
+                    requireNotNull(taller)
                 }
 
                 val ahora = Instant.now()
@@ -552,12 +551,25 @@ internal class TableroPrincipal(
             consulta.isNotBlank() || grupoSeleccionado != null || estadoSeleccionado != null ->
                 "No hay coincidencias con la búsqueda o el filtro aplicado."
             hayOrdenesActivas -> "No hay órdenes que coincidan con los filtros."
+            hayOrdenesRegistradas ->
+                "No hay órdenes activas. Puedes consultar el historial filtrando por Entregada o Cancelada."
             else -> "Todavía no hay órdenes registradas."
         }
         textoEstado.visibility = View.VISIBLE
         if (!hayOrdenesActivas && consulta.isBlank() &&
             grupoSeleccionado == null && estadoSeleccionado == null
         ) {
+            if (hayOrdenesRegistradas) {
+                listaOrdenes.addView(
+                    texto(
+                        "Las órdenes existentes están en estados terminales. Selecciona Entregada o Cancelada en el filtro para consultarlas.",
+                        14f,
+                        COLOR_SECUNDARIO,
+                        false
+                    )
+                )
+                return
+            }
             listaOrdenes.addView(
                 texto(
                     "La recepción estará disponible en una etapa posterior. Los datos aún no se pueden registrar desde el tablero.",

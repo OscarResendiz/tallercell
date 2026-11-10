@@ -38,6 +38,9 @@ interface OrdenServicioDao {
     )
     suspend fun obtenerConteosTablero(): List<ConteoOrdenTablero>
 
+    @Query("SELECT COUNT(id) FROM orden_servicio WHERE eliminada_en IS NULL")
+    suspend fun obtenerCantidadOrdenesRegistradas(): Int
+
     @Insert
     suspend fun insertar(ordenServicio: OrdenServicio)
 
