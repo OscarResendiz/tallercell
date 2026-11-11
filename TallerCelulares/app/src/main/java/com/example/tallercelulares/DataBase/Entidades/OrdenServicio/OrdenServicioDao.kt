@@ -16,7 +16,7 @@ interface OrdenServicioDao {
     @Query("SELECT * FROM orden_servicio")
     suspend fun obtenerTodos(): List<OrdenServicio>
 
-    @Query("SELECT * FROM orden_servicio WHERE cliente_id = :clienteId")
+    @Query("SELECT * FROM orden_servicio WHERE cliente_id = :clienteId ORDER BY recibida_en DESC, folio, id")
     suspend fun obtenerPorClienteId(clienteId: String): List<OrdenServicio>
 
     @Query("SELECT * FROM orden_servicio WHERE dispositivo_id = :dispositivoId")

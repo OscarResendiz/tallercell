@@ -69,6 +69,15 @@ Resolver y documentar estas decisiones antes de fijar la interfaz:
 11. **Paginación:** definir un límite de lista y orden estable. La búsqueda y las consultas de ficha deben resolverse en SQLite/Room, no cargando todos los clientes y filtrándolos solo en la vista.
 12. **Acción de baja:** requerir confirmación con consecuencias claras. Informar que el cliente dejará de aparecer como activo y que sus órdenes y dispositivos históricos se conservan.
 
+### Decisiones aplicadas en la implementación
+
+- El nombre es obligatorio (máximo 120 caracteres); teléfono, correo y notas son opcionales. Los valores opcionales vacíos se guardan como `NULL`; el correo se valida solo cuando se proporciona.
+- La lista consulta 50 clientes por página con orden estable. La búsqueda compara nombres sin distinguir mayúsculas ni acentos y teléfonos por dígitos normalizados; los resultados se consultan en Room.
+- Antes de crear se muestran hasta cinco coincidencias por nombre o teléfono. Se puede abrir una ficha existente y volver al formulario sin perder lo escrito, o crear el registro de todos modos; compartir teléfono no bloquea el alta.
+- La baja es lógica y confirmada; no se ofrece eliminación física ni reactivación. Los inactivos se excluyen del catálogo activo y las coincidencias, pero la ficha histórica conserva el acceso por identificador.
+- La ficha lista dispositivos y todas las órdenes relacionadas en orden estable, incluidas las archivadas. La edición solo actualiza los datos actuales del cliente, nunca los snapshots de las órdenes.
+- La navegación permanece dentro de `AccesoActivity`, con bloqueo por inactividad y `FLAG_SECURE`; las notas advierten no guardar secretos.
+
 ## 5. Trazabilidad de criterios a comportamientos
 
 | Criterio HU-004 | Comportamiento observable | Evidencia |

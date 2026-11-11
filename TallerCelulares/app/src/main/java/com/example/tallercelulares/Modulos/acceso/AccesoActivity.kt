@@ -29,6 +29,7 @@ import com.example.tallercelulares.ConfiguracionInicial.EstadoConfiguracionInici
 import com.example.tallercelulares.ConfiguracionInicial.RepositorioConfiguracionInicial
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionAccesoLocal.ConfiguracionAccesoLocal
 import com.example.tallercelulares.DataBase.TallerCelularesDatabase
+import com.example.tallercelulares.Modulos.Catalogos.Clientes.CatalogoClientes
 import com.example.tallercelulares.Modulos.tablero.TableroPrincipal
 import com.example.tallercelulares.Modulos.onbording.OnboardingActivity
 import com.example.tallercelulares.R
@@ -51,6 +52,7 @@ class AccesoActivity : AppCompatActivity() {
     private var isAuthenticating = false
     private var backgroundedAt: Long? = null
     private var tablero: TableroPrincipal? = null
+    private var catalogoClientes: CatalogoClientes? = null
     private var passwordField: EditText? = null
     private var primaryButton: MaterialButton? = null
     private val lockHandler = android.os.Handler(Looper.getMainLooper())
@@ -90,6 +92,7 @@ class AccesoActivity : AppCompatActivity() {
         } else if (session.estaAutenticada) {
             scheduleLockCheck()
             tablero?.refrescar()
+            catalogoClientes?.refrescar()
         }
     }
 
@@ -353,10 +356,22 @@ class AccesoActivity : AppCompatActivity() {
     }
 
     private fun showAuthenticatedDestination() {
+        catalogoClientes = null
         tablero = TableroPrincipal(
             activity = this,
             container = root,
             database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
+            alBloquear = { lockSession() },
+            alAbrirClientes = { mostrarCatalogoClientes() }
+        )
+    }
+
+    private fun mostrarCatalogoClientes() {
+        catalogoClientes = CatalogoClientes(
+            activity = this,
+            container = root,
+            database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
+            alVolverAlTablero = { showAuthenticatedDestination() },
             alBloquear = { lockSession() }
         )
     }
@@ -365,6 +380,8 @@ class AccesoActivity : AppCompatActivity() {
         lockHandler.removeCallbacks(lockRunnable)
         session.bloquear()
         tablero = null
+        catalogoClientes?.cerrar()
+        catalogoClientes = null
         requestedAuthorization = null
         errorMessage = null
         showLogin()

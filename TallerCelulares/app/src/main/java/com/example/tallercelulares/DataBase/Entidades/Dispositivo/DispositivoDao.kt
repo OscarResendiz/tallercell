@@ -14,7 +14,7 @@ interface DispositivoDao {
     @Query("SELECT * FROM dispositivo")
     suspend fun obtenerTodos(): List<Dispositivo>
 
-    @Query("SELECT * FROM dispositivo WHERE cliente_id = :clienteId")
+    @Query("SELECT * FROM dispositivo WHERE cliente_id = :clienteId ORDER BY marca COLLATE NOCASE, modelo COLLATE NOCASE, id")
     suspend fun obtenerPorClienteId(clienteId: String): List<Dispositivo>
 
     @Insert

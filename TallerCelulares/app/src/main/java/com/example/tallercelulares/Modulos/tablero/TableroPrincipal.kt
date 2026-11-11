@@ -41,7 +41,8 @@ internal class TableroPrincipal(
     private val activity: AppCompatActivity,
     private val container: FrameLayout,
     private val database: TallerCelularesDatabase,
-    private val alBloquear: () -> Unit
+    private val alBloquear: () -> Unit,
+    private val alAbrirClientes: () -> Unit
 ) {
     private data class FiltroEstado(val codigo: String?, val etiqueta: String) {
         override fun toString(): String = etiqueta
@@ -639,7 +640,7 @@ internal class TableroPrincipal(
         val areas = listOf(
             "Tablero — Disponible",
             "Órdenes y recepción — Pendiente",
-            "Clientes — Pendiente",
+            "Clientes — Disponible",
             "Dispositivos — Pendiente",
             "Servicios — Pendiente",
             "Inventario de piezas — Pendiente",
@@ -654,6 +655,9 @@ internal class TableroPrincipal(
             .setItems(areas.toTypedArray()) { _, position ->
                 val mensaje = if (position == 0) {
                     "El tablero ya está abierto."
+                } else if (position == 2) {
+                    alAbrirClientes()
+                    return@setItems
                 } else {
                     "Esta área estará disponible en una etapa posterior."
                 }
