@@ -35,5 +35,6 @@ data class Dispositivo(
     @ColumnInfo(name = "numero_serie") val numeroSerie: String? = null,
     val imei: String? = null,
     @ColumnInfo(name = "creado_en") val creadoEn: String,
-    @ColumnInfo(name = "actualizado_en") val actualizadoEn: String
+    @ColumnInfo(name = "actualizado_en") val actualizadoEn: String,
+    @ColumnInfo(name = "eliminado_en") val eliminadoEn: String? = null
 )

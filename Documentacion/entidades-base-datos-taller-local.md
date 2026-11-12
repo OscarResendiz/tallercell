@@ -130,6 +130,7 @@ Ficha reutilizable del equipo. Los datos observados al recibirlo se copian tambi
 | `tipo`, `marca`, `modelo`, `color` | TEXT | Tipo, por ejemplo teléfono o tableta. |
 | `numero_serie`, `imei` | TEXT NULL | Opcionales; limitar exposición en pantallas y exportaciones. |
 | `creado_en`, `actualizado_en` | TEXT | Fechas UTC. |
+| `eliminado_en` | TEXT NULL | Baja lógica; conserva el dispositivo y las referencias históricas. |
 
 Índices sugeridos: `cliente_id`, `imei` y `numero_serie`. No exigir identificador único para equipos dual-SIM, duplicados o datos corregidos.
 

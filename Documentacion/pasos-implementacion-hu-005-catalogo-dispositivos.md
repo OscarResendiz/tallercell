@@ -56,7 +56,7 @@ El modelo persistente ya existe, pero no hay operaciones de interfaz para admini
 
 ## 4. Decisiones de producto y datos
 
-1. **Datos requeridos:** cliente activo, tipo, marca, modelo y color son obligatorios. IMEI y número de serie son opcionales y se guardan como `NULL` cuando el campo queda vacío.
+1. **Datos requeridos:** cliente activo, tipo, marca y modelo  son obligatorios. IMEI, número de serie y color son opcionales y se guardan como `NULL` cuando el campo queda vacío.
 2. **Formato de los campos:** recortar espacios exteriores y rechazar campos obligatorios vacíos; definir límites razonables de longitud. No aplicar reglas nacionales rígidas a marca, modelo, color o serie.
 3. **IMEI y serie:** aceptar y conservar el valor escrito sin exigir que el usuario conozca un formato particular. Puede eliminarse espacio exterior, pero no cambiar silenciosamente el identificador original ni truncarlo. No imponer unicidad: puede haber errores por corregir, equipos dual-SIM o identificadores duplicados reportados.
 4. **Coincidencias:** antes de guardar se pueden sugerir equipos del mismo cliente con IMEI o serie coincidente. Una sugerencia no prueba identidad; permitir abrir el equipo sugerido y continuar el alta sin fusionarlo ni asociarle órdenes.
@@ -73,7 +73,7 @@ El modelo persistente ya existe, pero no hay operaciones de interfaz para admini
 
 - Se conservan el esquema y los campos existentes salvo la columna opcional `eliminado_en` para implementar una baja no destructiva.
 - La lista de un cliente consulta páginas de 50 elementos con orden estable; el buscador y las relaciones se filtran en Room.
-- Tipo, marca, modelo y color son obligatorios. IMEI y número de serie son opcionales, no únicos y se presentan enmascarados fuera de la ficha.
+- Tipo, marca y  modelo  son obligatorios. IMEI , número de serie y color son opcionales, no únicos y se presentan enmascarados fuera de la ficha.
 - La ficha de cliente mantiene la sección de dispositivos y la amplía con acciones de administración; la entrada global “Dispositivos” permite llegar a equipos sin obligar a entrar primero desde la pantalla de clientes.
 - Al editar se conserva la referencia al cliente actual y no se actualiza ninguna orden ni snapshot. Al dar de baja se conserva el equipo y las órdenes.
 

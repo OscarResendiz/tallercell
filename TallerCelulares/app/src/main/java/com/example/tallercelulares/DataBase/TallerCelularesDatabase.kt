@@ -82,7 +82,7 @@ import com.example.tallercelulares.DataBase.Entidades.TrabajoRealizado.TrabajoRe
         RegistroRespaldo::class,
         TrabajoRealizado::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class TallerCelularesDatabase : RoomDatabase() {
@@ -123,6 +123,7 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
                     "taller_celulares.db"
                 )
                     .addMigrations(MIGRACION_1_2)
+                    .addMigrations(MIGRACION_2_3)
                     .build()
                     .also { instancia = it }
             }
@@ -149,6 +150,15 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
                         PRIMARY KEY(`id`)
                     )
                     """.trimIndent()
+                )
+            }
+
+        }
+
+        private val MIGRACION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE `dispositivo` ADD COLUMN `eliminado_en` TEXT"
                 )
             }
         }

@@ -19,7 +19,34 @@ interface OrdenServicioDao {
     @Query("SELECT * FROM orden_servicio WHERE cliente_id = :clienteId ORDER BY recibida_en DESC, folio, id")
     suspend fun obtenerPorClienteId(clienteId: String): List<OrdenServicio>
 
-    @Query("SELECT * FROM orden_servicio WHERE dispositivo_id = :dispositivoId")
+    @Query(
+        """
+        SELECT * FROM orden_servicio
+        WHERE eliminada_en IS NULL
+          AND (
+            :consulta = ''
+            OR folio LIKE '%' || :consulta || '%' ESCAPE '\'
+            OR cliente_nombre_snapshot LIKE '%' || :consulta || '%' ESCAPE '\'
+            OR marca_snapshot LIKE '%' || :consulta || '%' ESCAPE '\'
+            OR modelo_snapshot LIKE '%' || :consulta || '%' ESCAPE '\'
+          )
+        ORDER BY recibida_en DESC, folio, id
+        LIMIT :limite OFFSET :desplazamiento
+        """
+    )
+    suspend fun buscarParaCotizacion(
+        consulta: String,
+        limite: Int,
+        desplazamiento: Int
+    ): List<OrdenServicio>
+
+    @Query(
+        """
+        SELECT * FROM orden_servicio
+        WHERE dispositivo_id = :dispositivoId
+        ORDER BY recibida_en DESC, folio, id
+        """
+    )
     suspend fun obtenerPorDispositivoId(dispositivoId: String): List<OrdenServicio>
 
     @Query("SELECT * FROM orden_servicio WHERE orden_origen_id = :ordenOrigenId")

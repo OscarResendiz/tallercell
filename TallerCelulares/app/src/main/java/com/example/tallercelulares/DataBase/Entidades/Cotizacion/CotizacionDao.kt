@@ -17,6 +17,35 @@ interface CotizacionDao {
     @Query("SELECT * FROM cotizacion WHERE orden_id = :ordenId")
     suspend fun obtenerPorOrdenId(ordenId: String): List<Cotizacion>
 
+    @Query(
+        """
+        SELECT * FROM cotizacion
+        WHERE orden_id = :ordenId AND estado = 'BORRADOR'
+        ORDER BY numero_version DESC
+        LIMIT 1
+        """
+    )
+    suspend fun obtenerBorradorMasReciente(ordenId: String): Cotizacion?
+
+    @Query("SELECT MAX(numero_version) FROM cotizacion WHERE orden_id = :ordenId")
+    suspend fun obtenerMaximaVersion(ordenId: String): Int?
+
+    @Query(
+        """
+        UPDATE cotizacion
+        SET subtotal_minor = :subtotalMinor,
+            impuesto_minor = :impuestoMinor,
+            total_minor = :totalMinor
+        WHERE id = :id AND estado = 'BORRADOR'
+        """
+    )
+    suspend fun actualizarTotalesBorrador(
+        id: String,
+        subtotalMinor: Long,
+        impuestoMinor: Long,
+        totalMinor: Long
+    ): Int
+
     @Insert
     suspend fun insertar(cotizacion: Cotizacion)
 

@@ -33,7 +33,8 @@ internal class CatalogoClientes(
     private val container: FrameLayout,
     private val database: TallerCelularesDatabase,
     private val alVolverAlTablero: () -> Unit,
-    private val alBloquear: () -> Unit
+    private val alBloquear: () -> Unit,
+    private val alAbrirDispositivos: (String, String?) -> Unit
 ) {
     private data class BorradorCliente(
         val nombre: String,
@@ -91,6 +92,10 @@ internal class CatalogoClientes(
         tarea?.cancel()
         pantalla = Pantalla.CERRADA
         callbackAtras.isEnabled = false
+    }
+
+    fun abrirFicha(id: String) {
+        mostrarFicha(id)
     }
 
     private fun mostrarLista() {
@@ -515,19 +520,25 @@ internal class CatalogoClientes(
                 }
 
                 contenido.addView(texto("Dispositivos", 19f, COLOR_TEXTO, true), margenSuperior())
+                contenido.addView(
+                    boton(
+                        if (cliente.eliminadoEn == null) "Administrar dispositivos" else "Consultar dispositivos",
+                        "Abrir dispositivos de ${cliente.nombre}"
+                    ) { alAbrirDispositivos(id, null) },
+                    margenInferior()
+                )
                 if (dispositivos.isEmpty()) {
                     contenido.addView(texto("Sin dispositivos registrados.", 15f, COLOR_SECUNDARIO, false))
                 } else {
                     dispositivos.forEach { dispositivo ->
                         contenido.addView(
-                            texto(
+                            boton(
                                 listOf(dispositivo.tipo, dispositivo.marca, dispositivo.modelo, dispositivo.color)
                                     .filter(String::isNotBlank)
-                                    .joinToString(" · "),
-                                15f,
-                                COLOR_TEXTO,
-                                false
-                            ),
+                                    .joinToString(" · ") +
+                                    if (dispositivo.eliminadoEn != null) "\nInactivo" else "",
+                                "Abrir ficha del dispositivo"
+                            ) { alAbrirDispositivos(id, dispositivo.id) },
                             margenInferior()
                         )
                     }
@@ -697,6 +708,7 @@ internal class CatalogoClientes(
     ): MaterialButton = MaterialButton(activity).apply {
         text = titulo
         isAllCaps = false
+        gravity = Gravity.START or Gravity.CENTER_VERTICAL
         contentDescription = descripcion
         setOnClickListener { accion() }
     }

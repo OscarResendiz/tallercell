@@ -30,6 +30,8 @@ import com.example.tallercelulares.ConfiguracionInicial.RepositorioConfiguracion
 import com.example.tallercelulares.DataBase.Entidades.ConfiguracionAccesoLocal.ConfiguracionAccesoLocal
 import com.example.tallercelulares.DataBase.TallerCelularesDatabase
 import com.example.tallercelulares.Modulos.Catalogos.Clientes.CatalogoClientes
+import com.example.tallercelulares.Modulos.Catalogos.Dispositivos.CatalogoDispositivos
+import com.example.tallercelulares.Modulos.Catalogos.Servicios.CatalogoServicios
 import com.example.tallercelulares.Modulos.tablero.TableroPrincipal
 import com.example.tallercelulares.Modulos.onbording.OnboardingActivity
 import com.example.tallercelulares.R
@@ -53,6 +55,8 @@ class AccesoActivity : AppCompatActivity() {
     private var backgroundedAt: Long? = null
     private var tablero: TableroPrincipal? = null
     private var catalogoClientes: CatalogoClientes? = null
+    private var catalogoDispositivos: CatalogoDispositivos? = null
+    private var catalogoServicios: CatalogoServicios? = null
     private var passwordField: EditText? = null
     private var primaryButton: MaterialButton? = null
     private val lockHandler = android.os.Handler(Looper.getMainLooper())
@@ -93,6 +97,8 @@ class AccesoActivity : AppCompatActivity() {
             scheduleLockCheck()
             tablero?.refrescar()
             catalogoClientes?.refrescar()
+            catalogoDispositivos?.refrescar()
+            catalogoServicios?.refrescar()
         }
     }
 
@@ -357,12 +363,16 @@ class AccesoActivity : AppCompatActivity() {
 
     private fun showAuthenticatedDestination() {
         catalogoClientes = null
+        catalogoDispositivos = null
+        catalogoServicios = null
         tablero = TableroPrincipal(
             activity = this,
             container = root,
             database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
             alBloquear = { lockSession() },
-            alAbrirClientes = { mostrarCatalogoClientes() }
+            alAbrirClientes = { mostrarCatalogoClientes() },
+            alAbrirDispositivos = { mostrarCatalogoDispositivos(null, null) },
+            alAbrirServicios = { mostrarCatalogoServicios() }
         )
     }
 
@@ -372,6 +382,43 @@ class AccesoActivity : AppCompatActivity() {
             container = root,
             database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
             alVolverAlTablero = { showAuthenticatedDestination() },
+            alBloquear = { lockSession() },
+            alAbrirDispositivos = { clienteId, dispositivoId ->
+                mostrarCatalogoDispositivos(clienteId, dispositivoId)
+            }
+        )
+    }
+
+    private fun mostrarCatalogoDispositivos(clienteId: String?, dispositivoId: String?) {
+        catalogoDispositivos?.cerrar()
+        catalogoDispositivos = CatalogoDispositivos(
+            activity = this,
+            container = root,
+            database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
+            clienteInicialId = clienteId,
+            dispositivoInicialId = dispositivoId,
+            alVolverAlTablero = {
+                catalogoDispositivos = null
+                showAuthenticatedDestination()
+            },
+            alVolverAlCliente = { id ->
+                catalogoDispositivos = null
+                catalogoClientes?.abrirFicha(id) ?: showAuthenticatedDestination()
+            },
+            alBloquear = { lockSession() }
+        )
+    }
+
+    private fun mostrarCatalogoServicios() {
+        catalogoServicios?.cerrar()
+        catalogoServicios = CatalogoServicios(
+            activity = this,
+            container = root,
+            database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
+            alVolverAlTablero = {
+                catalogoServicios = null
+                showAuthenticatedDestination()
+            },
             alBloquear = { lockSession() }
         )
     }
@@ -382,6 +429,10 @@ class AccesoActivity : AppCompatActivity() {
         tablero = null
         catalogoClientes?.cerrar()
         catalogoClientes = null
+        catalogoDispositivos?.cerrar()
+        catalogoDispositivos = null
+        catalogoServicios?.cerrar()
+        catalogoServicios = null
         requestedAuthorization = null
         errorMessage = null
         showLogin()
