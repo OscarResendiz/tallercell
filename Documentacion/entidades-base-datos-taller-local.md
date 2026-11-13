@@ -337,12 +337,16 @@ Libro de entradas, consumos, reservas, liberaciones, devoluciones y ajustes. Cor
 | `orden_id` | TEXT NULL | FK a `OrdenServicio.id` cuando se asocia a una orden. |
 | `tipo` | TEXT | `ENTRADA`, `CONSUMO`, `RESERVA`, `LIBERACION`, `DEVOLUCION`, `AJUSTE`. |
 | `cantidad` | INTEGER | Positiva; el tipo determina el efecto sobre la existencia. |
+| `sentido_ajuste` | TEXT NULL | Obligatorio solo para `AJUSTE`: `INCREMENTO` o `DECREMENTO`. |
+| `movimiento_origen_id` | TEXT NULL | FK restringida a otro movimiento; vincula liberaciones/consumos con una reserva y compensaciones con el movimiento corregido. |
 | `costo_unitario_minor` | INTEGER NULL | Costo al momento del movimiento. |
 | `proveedor`, `numero_pedido` | TEXT NULL | Datos de abastecimiento. |
 | `estado_compra` | TEXT NULL | `PENDIENTE`, `ORDENADA`, `ENVIADA`, `RECIBIDA`, `CANCELADA`, `SIN_DISPONIBILIDAD`. |
 | `fecha_estimada`, `confirmada_en` | TEXT NULL | Estimación y recepción física confirmada. |
-| `motivo` | TEXT NULL | Motivo de ajuste o devolución. |
+| `motivo` | TEXT NULL | Motivo obligatorio para movimientos confirmados. |
 | `creado_en` | TEXT | Fecha UTC. |
+
+Solo los movimientos con `confirmada_en` participan en la existencia física y reservada. Un movimiento confirmado se conserva; las correcciones se agregan como movimientos compensatorios vinculados por `movimiento_origen_id`.
 
 ### 4.6 Caja, garantías y recordatorios
 

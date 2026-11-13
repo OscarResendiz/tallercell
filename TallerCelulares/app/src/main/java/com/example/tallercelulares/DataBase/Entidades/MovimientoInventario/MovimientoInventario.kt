@@ -24,9 +24,19 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["orden_id"],
             onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = MovimientoInventario::class,
+            parentColumns = ["id"],
+            childColumns = ["movimiento_origen_id"],
+            onDelete = ForeignKey.RESTRICT
         )
     ],
-    indices = [Index(value = ["pieza_id", "creado_en"]), Index(value = ["orden_id"])]
+    indices = [
+        Index(value = ["pieza_id", "creado_en"]),
+        Index(value = ["orden_id"]),
+        Index(value = ["movimiento_origen_id"])
+    ]
 )
 data class MovimientoInventario(
     @PrimaryKey val id: String = EntidadId.nuevo(),
@@ -41,5 +51,7 @@ data class MovimientoInventario(
     @ColumnInfo(name = "fecha_estimada") val fechaEstimada: String? = null,
     @ColumnInfo(name = "confirmada_en") val confirmadaEn: String? = null,
     val motivo: String? = null,
-    @ColumnInfo(name = "creado_en") val creadoEn: String
+    @ColumnInfo(name = "creado_en") val creadoEn: String,
+    @ColumnInfo(name = "sentido_ajuste") val sentidoAjuste: String? = null,
+    @ColumnInfo(name = "movimiento_origen_id") val movimientoOrigenId: String? = null
 )

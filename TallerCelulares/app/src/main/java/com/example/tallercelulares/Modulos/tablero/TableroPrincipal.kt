@@ -44,7 +44,8 @@ internal class TableroPrincipal(
     private val alBloquear: () -> Unit,
     private val alAbrirClientes: () -> Unit,
     private val alAbrirDispositivos: () -> Unit,
-    private val alAbrirServicios: () -> Unit
+    private val alAbrirServicios: () -> Unit,
+    private val alAbrirPiezas: () -> Unit
 ) {
     private data class FiltroEstado(val codigo: String?, val etiqueta: String) {
         override fun toString(): String = etiqueta
@@ -645,7 +646,7 @@ internal class TableroPrincipal(
             "Clientes — Disponible",
             "Dispositivos — Disponible",
             "Servicios — Disponible",
-            "Inventario de piezas — Pendiente",
+            "Inventario de piezas — Disponible",
             "Caja — Pendiente",
             "Garantías — Pendiente",
             "Informes — Pendiente",
@@ -665,6 +666,9 @@ internal class TableroPrincipal(
                     return@setItems
                 } else if (position == 4) {
                     alAbrirServicios()
+                    return@setItems
+                } else if (position == 5) {
+                    alAbrirPiezas()
                     return@setItems
                 } else {
                     "Esta área estará disponible en una etapa posterior."

@@ -31,6 +31,7 @@ import com.example.tallercelulares.DataBase.Entidades.ConfiguracionAccesoLocal.C
 import com.example.tallercelulares.DataBase.TallerCelularesDatabase
 import com.example.tallercelulares.Modulos.Catalogos.Clientes.CatalogoClientes
 import com.example.tallercelulares.Modulos.Catalogos.Dispositivos.CatalogoDispositivos
+import com.example.tallercelulares.Modulos.Catalogos.Piezas.CatalogoPiezas
 import com.example.tallercelulares.Modulos.Catalogos.Servicios.CatalogoServicios
 import com.example.tallercelulares.Modulos.tablero.TableroPrincipal
 import com.example.tallercelulares.Modulos.onbording.OnboardingActivity
@@ -57,6 +58,7 @@ class AccesoActivity : AppCompatActivity() {
     private var catalogoClientes: CatalogoClientes? = null
     private var catalogoDispositivos: CatalogoDispositivos? = null
     private var catalogoServicios: CatalogoServicios? = null
+    private var catalogoPiezas: CatalogoPiezas? = null
     private var passwordField: EditText? = null
     private var primaryButton: MaterialButton? = null
     private val lockHandler = android.os.Handler(Looper.getMainLooper())
@@ -99,6 +101,7 @@ class AccesoActivity : AppCompatActivity() {
             catalogoClientes?.refrescar()
             catalogoDispositivos?.refrescar()
             catalogoServicios?.refrescar()
+            catalogoPiezas?.refrescar()
         }
     }
 
@@ -365,6 +368,7 @@ class AccesoActivity : AppCompatActivity() {
         catalogoClientes = null
         catalogoDispositivos = null
         catalogoServicios = null
+        catalogoPiezas = null
         tablero = TableroPrincipal(
             activity = this,
             container = root,
@@ -372,7 +376,8 @@ class AccesoActivity : AppCompatActivity() {
             alBloquear = { lockSession() },
             alAbrirClientes = { mostrarCatalogoClientes() },
             alAbrirDispositivos = { mostrarCatalogoDispositivos(null, null) },
-            alAbrirServicios = { mostrarCatalogoServicios() }
+            alAbrirServicios = { mostrarCatalogoServicios() },
+            alAbrirPiezas = { mostrarCatalogoPiezas() }
         )
     }
 
@@ -423,6 +428,19 @@ class AccesoActivity : AppCompatActivity() {
         )
     }
 
+    private fun mostrarCatalogoPiezas() {
+        catalogoPiezas?.cerrar()
+        catalogoPiezas = CatalogoPiezas(
+            activity = this,
+            container = root,
+            database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
+            alVolverAlTablero = {
+                catalogoPiezas = null
+                showAuthenticatedDestination()
+            }
+        )
+    }
+
     private fun lockSession() {
         lockHandler.removeCallbacks(lockRunnable)
         session.bloquear()
@@ -433,6 +451,8 @@ class AccesoActivity : AppCompatActivity() {
         catalogoDispositivos = null
         catalogoServicios?.cerrar()
         catalogoServicios = null
+        catalogoPiezas?.cerrar()
+        catalogoPiezas = null
         requestedAuthorization = null
         errorMessage = null
         showLogin()

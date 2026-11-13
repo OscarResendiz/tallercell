@@ -82,7 +82,7 @@ import com.example.tallercelulares.DataBase.Entidades.TrabajoRealizado.TrabajoRe
         RegistroRespaldo::class,
         TrabajoRealizado::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class TallerCelularesDatabase : RoomDatabase() {
@@ -124,6 +124,7 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
                 )
                     .addMigrations(MIGRACION_1_2)
                     .addMigrations(MIGRACION_2_3)
+                    .addMigrations(MIGRACION_3_4)
                     .build()
                     .also { instancia = it }
             }
@@ -159,6 +160,70 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
                     "ALTER TABLE `dispositivo` ADD COLUMN `eliminado_en` TEXT"
+                )
+            }
+        }
+
+        private val MIGRACION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE `movimiento_inventario_nuevo` (
+                        `id` TEXT NOT NULL,
+                        `pieza_id` TEXT NOT NULL,
+                        `orden_id` TEXT,
+                        `tipo` TEXT NOT NULL,
+                        `cantidad` INTEGER NOT NULL,
+                        `costo_unitario_minor` INTEGER,
+                        `proveedor` TEXT,
+                        `numero_pedido` TEXT,
+                        `estado_compra` TEXT,
+                        `fecha_estimada` TEXT,
+                        `confirmada_en` TEXT,
+                        `motivo` TEXT,
+                        `creado_en` TEXT NOT NULL,
+                        `sentido_ajuste` TEXT,
+                        `movimiento_origen_id` TEXT,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`pieza_id`) REFERENCES `pieza`(`id`)
+                            ON UPDATE NO ACTION ON DELETE RESTRICT,
+                        FOREIGN KEY(`orden_id`) REFERENCES `orden_servicio`(`id`)
+                            ON UPDATE NO ACTION ON DELETE RESTRICT,
+                        FOREIGN KEY(`movimiento_origen_id`) REFERENCES `movimiento_inventario_nuevo`(`id`)
+                            ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    """
+                    INSERT INTO `movimiento_inventario_nuevo` (
+                        `id`, `pieza_id`, `orden_id`, `tipo`, `cantidad`,
+                        `costo_unitario_minor`, `proveedor`, `numero_pedido`,
+                        `estado_compra`, `fecha_estimada`, `confirmada_en`,
+                        `motivo`, `creado_en`, `sentido_ajuste`, `movimiento_origen_id`
+                    )
+                    SELECT `id`, `pieza_id`, `orden_id`, `tipo`, `cantidad`,
+                        `costo_unitario_minor`, `proveedor`, `numero_pedido`,
+                        `estado_compra`, `fecha_estimada`, `confirmada_en`,
+                        `motivo`, `creado_en`, NULL, NULL
+                    FROM `movimiento_inventario`
+                    """.trimIndent()
+                )
+                database.execSQL("DROP TABLE `movimiento_inventario`")
+                database.execSQL(
+                    "ALTER TABLE `movimiento_inventario_nuevo` RENAME TO `movimiento_inventario`"
+                )
+                database.execSQL(
+                    "CREATE INDEX `index_movimiento_inventario_pieza_id_creado_en` " +
+                        "ON `movimiento_inventario` (`pieza_id`, `creado_en`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX `index_movimiento_inventario_orden_id` " +
+                        "ON `movimiento_inventario` (`orden_id`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX `index_movimiento_inventario_movimiento_origen_id` " +
+                        "ON `movimiento_inventario` (`movimiento_origen_id`)"
                 )
             }
         }

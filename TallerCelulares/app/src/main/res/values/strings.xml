@@ -56,4 +56,6 @@
     <string name="authenticated_title">Acceso verificado</string>
     <string name="authenticated_body">La configuración inicial quedó lista en este dispositivo. El tablero del taller se incorporará en la siguiente etapa.</string>
     <string name="retry_label">Reintentar</string>
+    <string name="inventory_loading_pieces">Cargando piezas…</string>
+    <string name="inventory_loading_orders">Cargando órdenes…</string>
 </resources>
