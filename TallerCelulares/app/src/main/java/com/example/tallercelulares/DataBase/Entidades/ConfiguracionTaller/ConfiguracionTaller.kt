@@ -28,6 +28,12 @@ data class ConfiguracionTaller(
     val diasRecordatorioRefaccionAtrasada: Int,
     @ColumnInfo(name = "dias_recordatorio_equipo_listo")
     val diasRecordatorioEquipoListo: Int,
+    @ColumnInfo(name = "texto_recepcion")
+    val textoRecepcion: String? = null,
+    @ColumnInfo(name = "texto_autorizacion")
+    val textoAutorizacion: String? = null,
+    @ColumnInfo(name = "texto_garantia")
+    val textoGarantia: String? = null,
     @ColumnInfo(name = "creado_en") val creadoEn: String,
     @ColumnInfo(name = "actualizado_en") val actualizadoEn: String
 )

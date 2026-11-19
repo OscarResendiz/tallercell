@@ -45,7 +45,8 @@ internal class TableroPrincipal(
     private val alAbrirClientes: () -> Unit,
     private val alAbrirDispositivos: () -> Unit,
     private val alAbrirServicios: () -> Unit,
-    private val alAbrirPiezas: () -> Unit
+    private val alAbrirPiezas: () -> Unit,
+    private val alAbrirConfiguracion: () -> Unit
 ) {
     private data class FiltroEstado(val codigo: String?, val etiqueta: String) {
         override fun toString(): String = etiqueta
@@ -650,7 +651,7 @@ internal class TableroPrincipal(
             "Caja — Pendiente",
             "Garantías — Pendiente",
             "Informes — Pendiente",
-            "Configuración — Pendiente",
+            "Configuración — Disponible",
             "Respaldo — Pendiente"
         )
         MaterialAlertDialogBuilder(activity)
@@ -669,6 +670,9 @@ internal class TableroPrincipal(
                     return@setItems
                 } else if (position == 5) {
                     alAbrirPiezas()
+                    return@setItems
+                } else if (position == 9) {
+                    alAbrirConfiguracion()
                     return@setItems
                 } else {
                     "Esta área estará disponible en una etapa posterior."

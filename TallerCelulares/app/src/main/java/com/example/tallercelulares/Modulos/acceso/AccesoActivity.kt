@@ -33,6 +33,7 @@ import com.example.tallercelulares.Modulos.Catalogos.Clientes.CatalogoClientes
 import com.example.tallercelulares.Modulos.Catalogos.Dispositivos.CatalogoDispositivos
 import com.example.tallercelulares.Modulos.Catalogos.Piezas.CatalogoPiezas
 import com.example.tallercelulares.Modulos.Catalogos.Servicios.CatalogoServicios
+import com.example.tallercelulares.Modulos.Configuracion.ConfiguracionTallerModulo
 import com.example.tallercelulares.Modulos.tablero.TableroPrincipal
 import com.example.tallercelulares.Modulos.onbording.OnboardingActivity
 import com.example.tallercelulares.R
@@ -59,6 +60,7 @@ class AccesoActivity : AppCompatActivity() {
     private var catalogoDispositivos: CatalogoDispositivos? = null
     private var catalogoServicios: CatalogoServicios? = null
     private var catalogoPiezas: CatalogoPiezas? = null
+    private var configuracionTaller: ConfiguracionTallerModulo? = null
     private var passwordField: EditText? = null
     private var primaryButton: MaterialButton? = null
     private val lockHandler = android.os.Handler(Looper.getMainLooper())
@@ -369,6 +371,7 @@ class AccesoActivity : AppCompatActivity() {
         catalogoDispositivos = null
         catalogoServicios = null
         catalogoPiezas = null
+        configuracionTaller = null
         tablero = TableroPrincipal(
             activity = this,
             container = root,
@@ -377,7 +380,8 @@ class AccesoActivity : AppCompatActivity() {
             alAbrirClientes = { mostrarCatalogoClientes() },
             alAbrirDispositivos = { mostrarCatalogoDispositivos(null, null) },
             alAbrirServicios = { mostrarCatalogoServicios() },
-            alAbrirPiezas = { mostrarCatalogoPiezas() }
+            alAbrirPiezas = { mostrarCatalogoPiezas() },
+            alAbrirConfiguracion = { mostrarConfiguracionTaller() }
         )
     }
 
@@ -441,6 +445,20 @@ class AccesoActivity : AppCompatActivity() {
         )
     }
 
+    private fun mostrarConfiguracionTaller() {
+        configuracionTaller?.cerrar()
+        configuracionTaller = ConfiguracionTallerModulo(
+            activity = this,
+            container = root,
+            database = TallerCelularesDatabase.obtenerInstancia(applicationContext),
+            alVolverAlTablero = {
+                configuracionTaller = null
+                showAuthenticatedDestination()
+            },
+            alBloquear = { lockSession() }
+        )
+    }
+
     private fun lockSession() {
         lockHandler.removeCallbacks(lockRunnable)
         session.bloquear()
@@ -453,6 +471,8 @@ class AccesoActivity : AppCompatActivity() {
         catalogoServicios = null
         catalogoPiezas?.cerrar()
         catalogoPiezas = null
+        configuracionTaller?.cerrar()
+        configuracionTaller = null
         requestedAuthorization = null
         errorMessage = null
         showLogin()

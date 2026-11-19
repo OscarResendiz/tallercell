@@ -42,6 +42,8 @@ import com.example.tallercelulares.DataBase.Entidades.MovimientoCaja.MovimientoC
 import com.example.tallercelulares.DataBase.Entidades.MovimientoCaja.MovimientoCajaDao
 import com.example.tallercelulares.DataBase.Entidades.MovimientoInventario.MovimientoInventario
 import com.example.tallercelulares.DataBase.Entidades.MovimientoInventario.MovimientoInventarioDao
+import com.example.tallercelulares.DataBase.Entidades.OpcionMetodoPago.OpcionMetodoPago
+import com.example.tallercelulares.DataBase.Entidades.OpcionMetodoPago.OpcionMetodoPagoDao
 import com.example.tallercelulares.DataBase.Entidades.OrdenServicio.OrdenServicio
 import com.example.tallercelulares.DataBase.Entidades.OrdenServicio.OrdenServicioDao
 import com.example.tallercelulares.DataBase.Entidades.Pieza.Pieza
@@ -75,6 +77,7 @@ import com.example.tallercelulares.DataBase.Entidades.TrabajoRealizado.TrabajoRe
         Garantia::class,
         MovimientoCaja::class,
         MovimientoInventario::class,
+        OpcionMetodoPago::class,
         OrdenServicio::class,
         Pieza::class,
         PruebaOrden::class,
@@ -82,7 +85,7 @@ import com.example.tallercelulares.DataBase.Entidades.TrabajoRealizado.TrabajoRe
         RegistroRespaldo::class,
         TrabajoRealizado::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class TallerCelularesDatabase : RoomDatabase() {
@@ -104,6 +107,7 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
     abstract fun garantiaDao(): GarantiaDao
     abstract fun movimientoCajaDao(): MovimientoCajaDao
     abstract fun movimientoInventarioDao(): MovimientoInventarioDao
+    abstract fun opcionMetodoPagoDao(): OpcionMetodoPagoDao
     abstract fun ordenServicioDao(): OrdenServicioDao
     abstract fun piezaDao(): PiezaDao
     abstract fun pruebaOrdenDao(): PruebaOrdenDao
@@ -125,6 +129,7 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
                     .addMigrations(MIGRACION_1_2)
                     .addMigrations(MIGRACION_2_3)
                     .addMigrations(MIGRACION_3_4)
+                    .addMigrations(MIGRACION_4_5)
                     .build()
                     .also { instancia = it }
             }
@@ -224,6 +229,36 @@ abstract class TallerCelularesDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE INDEX `index_movimiento_inventario_movimiento_origen_id` " +
                         "ON `movimiento_inventario` (`movimiento_origen_id`)"
+                )
+            }
+        }
+
+        private val MIGRACION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE `configuracion_taller` ADD COLUMN `texto_recepcion` TEXT"
+                )
+                database.execSQL(
+                    "ALTER TABLE `configuracion_taller` ADD COLUMN `texto_autorizacion` TEXT"
+                )
+                database.execSQL(
+                    "ALTER TABLE `configuracion_taller` ADD COLUMN `texto_garantia` TEXT"
+                )
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `opcion_metodo_pago` (
+                        `id` TEXT NOT NULL,
+                        `nombre` TEXT NOT NULL,
+                        `activo` INTEGER NOT NULL,
+                        `creado_en` TEXT NOT NULL,
+                        `actualizado_en` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_opcion_metodo_pago_nombre` " +
+                        "ON `opcion_metodo_pago` (`nombre`)"
                 )
             }
         }
